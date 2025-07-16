@@ -3,7 +3,7 @@ from smarthulk import views
 
 urlpatterns = [
     path('',views.index,),
-    path('meditation',views.meditation,),
-    path('emotion',views.emotion,),
-    path('diary',views.diary,),
+    path('detection',views.detection),
+    path('static',views.static),
+    path('settings', views.settings),
 ]

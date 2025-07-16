@@ -8,11 +8,11 @@ from django.utils import timezone
 def index(request):
     return render(request, "index.html") 
 
-def meditation(request):
-    return render(request, "meditation.html")
+def detection(request):
+    return render(request, "detection.html")
 
-def emotion(request):
-    return render(request, "emotion_detection.html")
+def static(request):
+    return render(request, "static.html")
 
-def diary(request):
-    return render(request, "diary.html")
+def settings(request):
+    return render(request, "settings.html")
