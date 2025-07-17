@@ -1,9 +1,309 @@
 {% extends "base.html" %}
 
+<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .camera-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .camera-card h1 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 2em;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .camera-container {
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        #video {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 100%;
+            height: auto;
+            background: #f0f0f0;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .camera-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            min-width: 140px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8, #6a419a);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #ff5252, #e53e3e);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #51cf66, #40c057);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #47cc5e, #37b24d);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(81, 207, 102, 0.4);
+        }
+
+        .detection-results {
+            background: rgba(103, 126, 234, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+            border-left: 5px solid #667eea;
+            min-height: 100px;
+        }
+
+        .detection-results h2 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .detection-results p {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-active {
+            background: #51cf66;
+        }
+
+        .status-inactive {
+            background: #ff6b6b;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .camera-card {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @media (max-width: 768px) {
+            .camera-card {
+                padding: 20px;
+            }
+            
+            .btn {
+                min-width: 120px;
+                font-size: 14px;
+            }
+        }
+    </style>
+
 {% block title %}
-    <title>=detection</title>
+    <title>detection</title>
 {% endblock %}
 
+
 {% block content %}
+
+</head>
+<body>
+    <div class="camera-card">
+        <h1>🎥 Health Detection Camera</h1>
+        
+        <div class="camera-container">
+            <video id="video" width="640" height="480" autoplay></video>
+        </div>
+        
+        <div class="camera-controls">
+            <button id="startCamera" class="btn btn-primary">📹 Start Camera</button>
+            <button id="stopCamera" class="btn btn-danger" style="display: none;">⏹️ Stop Camera</button>
+        </div>
+
+    <script>
+        let currentStream = null;
+        let detectionInterval = null;
+
+        // Camera functions
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 640, 
+                        height: 480,
+                        facingMode: 'user'
+                    } 
+                });
+                
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                currentStream = stream;
+                
+                // Update UI
+                document.getElementById('startCamera').style.display = 'none';
+                document.getElementById('stopCamera').style.display = 'inline-block';
+                
+                const statusIndicator = document.getElementById('statusIndicator');
+                statusIndicator.className = 'status-indicator status-active';
+                
+                updateDetectionResults('📹 Camera started successfully!<br>🔍 AI health detection is now active...');
+                
+                // Start detection simulation
+                startDetectionSimulation();
+                
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                let errorMessage = '❌ Unable to access camera.<br>';
+                if (error.name === 'NotAllowedError') {
+                    errorMessage += 'Please allow camera permissions and try again.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMessage += 'No camera device found.';
+                } else {
+                    errorMessage += 'Please check your camera settings.';
+                }
+                updateDetectionResults(errorMessage);
+            }
+        }
+
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+                
+                const video = document.getElementById('video');
+                video.srcObject = null;
+                
+                // Update UI
+                document.getElementById('startCamera').style.display = 'inline-block';
+                document.getElementById('stopCamera').style.display = 'none';
+                
+                const statusIndicator = document.getElementById('statusIndicator');
+                statusIndicator.className = 'status-indicator status-inactive';
+                
+                // Stop detection simulation
+                if (detectionInterval) {
+                    clearInterval(detectionInterval);
+                    detectionInterval = null;
+                }
+                
+                updateDetectionResults('📹 Camera stopped.<br>Click "Start Camera" to begin detection again.');
+            }
+        }
+
+        function captureImage() {
+            const video = document.getElementById('video');
+            
+            // Draw current video frame to canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to blob and simulate analysis
+            canvas.toBlob((blob) => {
+                updateDetectionResults('📸 Image captured successfully!<br>🔍 Analyzing captured image...<br>✅ Analysis complete:<br>• Health indicators: Normal range<br>• Recommendation: Continue monitoring');
+                
+                // Optional: You can process the blob here
+                // For example, send to server for analysis
+                console.log('Captured image blob:', blob);
+            }, 'image/jpeg', 0.9);
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('startCamera').addEventListener('click', startCamera);
+            document.getElementById('stopCamera').addEventListener('click', stopCamera);
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>
 
 {% endblock %}
