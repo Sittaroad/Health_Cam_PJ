@@ -11,8 +11,8 @@ def index(request):
 def detection(request):
     return render(request, "detection.html")
 
-def static(request):
-    return render(request, "static.html")
+def analytics(request):
+    return render(request, "analytics.html")
 
 def settings(request):
     return render(request, "settings.html")
